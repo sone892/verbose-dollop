@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大学院進学ロードマップ - 面談用インタラクティブダッシュボード</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Academic Trust (Slate-50 background, Navy Blue primary, Emerald Green accents, subtle gray borders) -->
+    <!-- Application Structure Plan: A two-part dashboard designed for student-advisor interviews. The top section features an interactive chronological timeline (Information Architecture choice: sequential flow is best for "what to do when") that reveals specific tasks and advice for each period. The bottom section is a "Readiness Assessment" tool using a dynamic Radar chart. This structure allows the advisor to first explain the overall timeline, and then interactively assess the specific student's current standing, creating a highly personalized and actionable interview experience. -->
+    <!-- Visualization & Content Choices: 
+         1. Interactive Timeline (HTML/CSS/JS): Shows the chronological flow from 3rd year to exam time. Goal: Organize & Inform. Justification: Better than static text; allows focusing on one phase at a time during the interview. 
+         2. Task Lists & Details (HTML/JS): Appears on timeline click. Goal: Inform. Justification: Provides actionable steps without overwhelming the initial view. 
+         3. Readiness Radar Chart (Chart.js): Visualizes the student's current status across 5 key dimensions (English, GPA, Research Plan, etc.). Goal: Compare & Analyze. Interaction: Sliders update the chart in real-time. Justification: Provides immediate, visual feedback during a 1-on-1 interview, highlighting strengths and areas needing work. Method: Chart.js Canvas.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 400px; }
+        }
+        /* Custom styling for the timeline connecting line */
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            height: 4px;
+            background-color: #cbd5e1;
+            z-index: 0;
+        }
+        @media (max-width: 767px) {
+            .timeline-line::before {
+                top: 0;
+                left: 24px;
+                width: 4px;
+                height: 100%;
+            }
+        }
+        input[type=range] {
+            accent-color: #1e3a8a;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-blue-900 text-white p-6 shadow-md">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold tracking-wider">大学院進学ロードマップ</h1>
+                <p class="text-blue-200 mt-2 text-sm md:text-base">学部3年生向け 進路相談・面談用インタラクティブガイド</p>
+            </div>
+            <div class="mt-4 md:mt-0 px-4 py-2 bg-blue-800 rounded-lg border border-blue-700 shadow-inner">
+                <span class="text-sm font-semibold text-blue-300">面談対象時期:</span>
+                <span class="ml-2 font-bold text-white">学部3年生 (通年)</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-4 md:p-6 space-y-8 mt-4">
+
+        <!-- Section 1: Interactive Timeline -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
+            <h2 class="text-2xl font-bold text-slate-800 mb-4 border-b-2 border-blue-900 pb-2 inline-block">1. 進学までの全体スケジュールとタスク</h2>
+            <p class="text-slate-600 mb-8 leading-relaxed">
+                このセクションでは、学部3年生の春から4年生の院試本番までの具体的な流れを時系列で確認します。各時期のアイコンをクリックすることで、その時期に「何を考え」「何をすべきか」の詳細なタスクリストとアドバイスが表示されます。面談においては、学生の現在の時期と照らし合わせながら、直近の目標設定に活用してください。
+            </p>
+
+            <!-- Timeline Navigation -->
+            <div class="relative timeline-line mb-8 md:mb-12 flex flex-col md:flex-row justify-between md:items-center space-y-6 md:space-y-0">
+                <!-- Timeline Items -->
+                <button onclick="updateTimeline('spring3')" id="btn-spring3" class="timeline-btn relative z-10 flex flex-row md:flex-col items-center group focus:outline-none w-full md:w-1/4 text-left md:text-center transition-transform hover:scale-105">
+                    <div class="w-12 h-12 rounded-full bg-blue-900 text-white flex items-center justify-center font-bold text-lg shadow-md ring-4 ring-white transition-colors duration-300">1</div>
+                    <div class="ml-4 md:ml-0 md:mt-4">
+                        <div class="font-bold text-slate-800">3年 前期</div>
+                        <div class="text-sm text-slate-500">4月〜9月</div>
+                    </div>
+                </button>
+
+                <button onclick="updateTimeline('autumn3')" id="btn-autumn3" class="timeline-btn relative z-10 flex flex-row md:flex-col items-center group focus:outline-none w-full md:w-1/4 text-left md:text-center transition-transform hover:scale-105">
+                    <div class="w-12 h-12 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-bold text-lg shadow-md ring-4 ring-white transition-colors duration-300">2</div>
+                    <div class="ml-4 md:ml-0 md:mt-4">
+                        <div class="font-bold text-slate-800">3年 後期</div>
+                        <div class="text-sm text-slate-500">10月〜3月</div>
+                    </div>
+                </button>
+
+                <button onclick="updateTimeline('spring4')" id="btn-spring4" class="timeline-btn relative z-10 flex flex-row md:flex-col items-center group focus:outline-none w-full md:w-1/4 text-left md:text-center transition-transform hover:scale-105">
+                    <div class="w-12 h-12 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-bold text-lg shadow-md ring-4 ring-white transition-colors duration-300">3</div>
+                    <div class="ml-4 md:ml-0 md:mt-4">
+                        <div class="font-bold text-slate-800">4年 前期</div>
+                        <div class="text-sm text-slate-500">4月〜6月</div>
+                    </div>
+                </button>
+
+                <button onclick="updateTimeline('summer4')" id="btn-summer4" class="timeline-btn relative z-10 flex flex-row md:flex-col items-center group focus:outline-none w-full md:w-1/4 text-left md:text-center transition-transform hover:scale-105">
+                    <div class="w-12 h-12 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-bold text-lg shadow-md ring-4 ring-white transition-colors duration-300">4</div>
+                    <div class="ml-4 md:ml-0 md:mt-4">
+                        <div class="font-bold text-slate-800">4年 夏</div>
+                        <div class="text-sm text-slate-500">7月〜9月</div>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Dynamic Content Display for Timeline -->
+            <div id="timeline-content" class="bg-slate-50 rounded-lg p-6 border border-slate-200 shadow-inner transition-opacity duration-300">
+                <div class="flex items-center mb-4">
+                    <span id="content-icon" class="text-3xl mr-3">🔍</span>
+                    <h3 id="content-title" class="text-xl font-bold text-blue-900">3年前期：情報収集と自己分析</h3>
+                </div>
+                <p id="content-desc" class="text-slate-700 mb-6 pb-4 border-b border-slate-300">
+                    大学院進学を少しでも意識し始めたら、まずは幅広く情報を集める時期です。「なぜ進学したいのか」「どのような研究に興味があるのか」を自問自答し、言語化するプロセスを開始しましょう。
+                </p>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-3 flex items-center">
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm mr-2">必須タスク</span>
+                        </h4>
+                        <ul id="content-tasks" class="space-y-3">
+                            <li class="flex items-start">
+                                <span class="text-emerald-600 mr-2">✔</span>
+                                <span class="text-sm text-slate-700">自己分析：「就職」か「進学」かの理由を明確にする</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-emerald-600 mr-2">✔</span>
+                                <span class="text-sm text-slate-700">興味のある研究分野のキーワードをリストアップする</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-emerald-600 mr-2">✔</span>
+                                <span class="text-sm text-slate-700">自大・他大の大学院HPや研究室HPを閲覧する</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-emerald-600 mr-2">✔</span>
+                                <span class="text-sm text-slate-700">卒業要件と現在の取得単位数（GPA）を確認する</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="bg-amber-50 rounded p-4 border border-amber-200">
+                        <h4 class="font-bold text-amber-900 mb-2">面談時の確認ポイント・助言</h4>
+                        <p id="content-advice" class="text-sm text-amber-800 leading-relaxed">
+                            まだ具体的な研究テーマが決まっていなくても焦る必要はありません。まずは「知る」ことが重要です。夏季休業中に開催される他大学のオープンキャンパスや大学院説明会には積極的に参加するよう促してください。また、TOEIC等の英語学習は今のうちから習慣化させることが非常に重要です。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Interactive Readiness Assessment -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
+            <h2 class="text-2xl font-bold text-slate-800 mb-4 border-b-2 border-blue-900 pb-2 inline-block">2. 現在の準備状況アセスメント（パラメータ分析）</h2>
+            <p class="text-slate-600 mb-8 leading-relaxed">
+                このセクションは、面談中に学生と一緒に入力・操作することを想定した自己評価ツールです。大学院合格に必要な5つの主要指標について、現在の到達度（1〜10）をスライダーで入力することで、強みと弱みがレーダーチャート上に可視化されます。入力結果をもとに、今後の具体的な学習計画や行動目標をディスカッションしてください。
+            </p>
+
+            <div class="grid lg:grid-cols-2 gap-8 items-center">
+                
+                <!-- Input Controls -->
+                <div class="space-y-6 bg-slate-50 p-6 rounded-lg border border-slate-200">
+                    <h3 class="font-bold text-lg text-slate-800 mb-4">自己評価スライダー (1:未着手 - 10:完了・自信あり)</h3>
+                    
+                    <!-- Slider 1 -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm font-semibold text-slate-700">語学力 (TOEIC/TOEFL等)</label>
+                            <span id="val-english" class="text-sm font-bold text-blue-900">3</span>
+                        </div>
+                        <input type="range" min="1" max="10" value="3" class="w-full" id="slider-english" oninput="updateChart()">
+                        <p class="text-xs text-slate-500 mt-1">※院試で要求されるスコアに対する到達度</p>
+                    </div>
+
+                    <!-- Slider 2 -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm font-semibold text-slate-700">専門科目の基礎学力</label>
+                            <span id="val-specialty" class="text-sm font-bold text-blue-900">4</span>
+                        </div>
+                        <input type="range" min="1" max="10" value="4" class="w-full" id="slider-specialty" oninput="updateChart()">
+                        <p class="text-xs text-slate-500 mt-1">※過去問を見た際の理解度、普段の授業の理解度</p>
+                    </div>
+
+                    <!-- Slider 3 -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm font-semibold text-slate-700">研究テーマ・計画の明確さ</label>
+                            <span id="val-research" class="text-sm font-bold text-blue-900">2</span>
+                        </div>
+                        <input type="range" min="1" max="10" value="2" class="w-full" id="slider-research" oninput="updateChart()">
+                        <p class="text-xs text-slate-500 mt-1">※「何を研究したいか」が言語化され、研究計画書に落とし込めるか</p>
+                    </div>
+
+                    <!-- Slider 4 -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm font-semibold text-slate-700">研究室訪問・教員コンタクト</label>
+                            <span id="val-contact" class="text-sm font-bold text-blue-900">1</span>
+                        </div>
+                        <input type="range" min="1" max="10" value="1" class="w-full" id="slider-contact" oninput="updateChart()">
+                        <p class="text-xs text-slate-500 mt-1">※志望研究室の教員と面談済みか、マッチングは確認できたか</p>
+                    </div>
+
+                    <!-- Slider 5 -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm font-semibold text-slate-700">学部成績 (GPA)・卒業単位</label>
+                            <span id="val-gpa" class="text-sm font-bold text-blue-900">6</span>
+                        </div>
+                        <input type="range" min="1" max="10" value="6" class="w-full" id="slider-gpa" oninput="updateChart()">
+                        <p class="text-xs text-slate-500 mt-1">※推薦基準を満たしているか、留年の危険はないか</p>
+                    </div>
+                </div>
+
+                <!-- Radar Chart -->
+                <div class="bg-white p-4 flex flex-col items-center">
+                    <div class="chart-container">
+                        <canvas id="readinessChart"></canvas>
+                    </div>
+                    
+                    <!-- Dynamic Recommendation Box -->
+                    <div id="dynamic-recommendation" class="mt-6 w-full p-4 rounded-lg bg-blue-50 border border-blue-200 hidden">
+                        <h4 class="font-bold text-blue-900 text-sm mb-1">システムからの助言</h4>
+                        <p id="rec-text" class="text-sm text-slate-700"></p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-slate-400 py-6 text-center mt-12">
+        <p class="text-sm">大学院進学 面談サポートシステム | 内部利用専用</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- 1. Timeline Data & Logic ---
+        const timelineData = {
+            spring3: {
+                title: "3年前期 (4〜9月)：情報収集と自己分析",
+                icon: "🔍",
+                desc: "大学院進学を少しでも意識し始めたら、まずは幅広く情報を集める時期です。「なぜ進学したいのか」「どのような研究に興味があるのか」を自問自答し、言語化するプロセスを開始しましょう。",
+                tasks: [
+                    "自己分析：「就職」か「進学」かの理由を明確にする",
+                    "興味のある研究分野のキーワードをリストアップする",
+                    "自大・他大の大学院HPや研究室HPを閲覧する",
+                    "卒業要件と現在の取得単位数（GPA）を確認する"
+                ],
+                advice: "まだ具体的な研究テーマが決まっていなくても焦る必要はありません。まずは「知る」ことが重要です。夏季休業中に開催される他大学の大学院説明会やオープンキャンパス（オンライン含む）には積極的に参加するよう促してください。また、TOEIC等の英語学習は今のうちから習慣化させることが非常に重要です。"
+            },
+            autumn3: {
+                title: "3年後期 (10〜3月)：志望校絞り込みとコンタクト",
+                icon: "🎯",
+                desc: "興味のある分野から、具体的な志望研究室（指導教員）を絞り込んでいく重要な時期です。他大学を受験する場合は、この時期から教員へのコンタクト（メール等）を開始することが望ましいです。",
+                tasks: [
+                    "研究したいテーマに関連する論文を数本読んでみる",
+                    "志望する大学院・研究室を第1〜第3希望までリストアップする",
+                    "【重要】他大の場合は、志望研究室の教授へメールでアポを取り、面談（オンライン可）を行う",
+                    "TOEIC/TOEFLの受験を定期的に行い、スコアメイクを本格化する",
+                    "過去の院試問題（過去問）を入手し、出題傾向を把握する"
+                ],
+                advice: "他大進学の場合、教員への事前コンタクトは必須と言っても過言ではありません。「自分は何を研究したいのか」を簡潔に説明できるよう準備させましょう。また、過去問を一度解いてみて、現在の自分の実力と合格ラインとのギャップを認識させることが、今後の学習計画のモチベーションに繋がります。"
+            },
+            spring4: {
+                title: "4年前期 (4〜6月)：出願準備と猛勉強",
+                icon: "📝",
+                desc: "研究室に正式に配属され、卒論のテーマ設定と並行して院試に向けた猛勉強を行う時期です。同時に、出願書類（特に研究計画書）の作成という大きなハードルがあります。",
+                tasks: [
+                    "募集要項を取り寄せ、出願期間・必要書類・試験科目を最終確認する",
+                    "志望理由書、研究計画書の作成を開始し、指導教員等に添削を依頼する",
+                    "専門科目の体系的な復習と、過去問演習を繰り返す",
+                    "（英語外部試験利用の場合）スコア提出の最終期限に間に合うよう受験する",
+                    "出願手続き（検定料納入、書類郵送等）をミスのないよう行う"
+                ],
+                advice: "卒論の準備と院試勉強の両立で学生が最も精神的・体力的に追い詰められやすい時期です。タイムマネジメントの状況を確認し、必要であればスケジュールの見直しを手伝ってください。「研究計画書」は1日で書けるものではないため、早めの着手と複数回の推敲を強く指導してください。"
+            },
+            summer4: {
+                title: "4年夏 (7〜9月)：院試本番と面接",
+                icon: "🎓",
+                desc: "いよいよ大学院入試の本番を迎えます。筆記試験だけでなく、研究計画に基づく面接（口頭試問）が行われることが多いため、プレゼンテーションの準備も必要です。",
+                tasks: [
+                    "筆記試験の最終調整（苦手分野の克服より、得意分野の確実な得点を狙う）",
+                    "提出した研究計画書に基づく面接（口頭試問）のシミュレーション",
+                    "面接用プレゼン資料（スライド等）の作成と発表練習",
+                    "体調管理と当日のスケジュール・交通機関の確認",
+                    "【試験後】合格発表の確認と、入学手続き書類の準備"
+                ],
+                advice: "筆記試験対策はもちろんですが、面接対策（模擬面接）を研究室の先輩や教員にお願いするようアドバイスしてください。「なぜこの大学・研究室なのか」「この研究の社会的意義は何か」「入学後の具体的な計画」に対して、自分の言葉で自信を持って語れるようになっているかを確認します。"
+            }
+        };
+
+        function updateTimeline(phaseId) {
+            // Update UI styles for buttons
+            const buttons = document.querySelectorAll('.timeline-btn > div.rounded-full');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-blue-900', 'text-white');
+                btn.classList.add('bg-slate-300', 'text-slate-600');
+            });
+            
+            const activeBtn = document.querySelector(`#btn-${phaseId} > div.rounded-full`);
+            activeBtn.classList.remove('bg-slate-300', 'text-slate-600');
+            activeBtn.classList.add('bg-blue-900', 'text-white');
+
+            // Update Content
+            const data = timelineData[phaseId];
+            
+            // Fade out
+            const contentDiv = document.getElementById('timeline-content');
+            contentDiv.style.opacity = 0;
+            
+            setTimeout(() => {
+                document.getElementById('content-icon').textContent = data.icon;
+                document.getElementById('content-title').textContent = data.title;
+                document.getElementById('content-desc').textContent = data.desc;
+                
+                const taskList = document.getElementById('content-tasks');
+                taskList.innerHTML = '';
+                data.tasks.forEach(task => {
+                    const li = document.createElement('li');
+                    li.className = 'flex items-start';
+                    li.innerHTML = `<span class="text-emerald-600 mr-2">✔</span><span class="text-sm text-slate-700">${task}</span>`;
+                    taskList.appendChild(li);
+                });
+                
+                document.getElementById('content-advice').textContent = data.advice;
+                
+                // Fade in
+                contentDiv.style.opacity = 1;
+            }, 300); // match duration
+        }
+
+        // --- 2. Chart.js Data & Logic ---
+        let readinessChart;
+
+        function initChart() {
+            const ctx = document.getElementById('readinessChart').getContext('2d');
+            
+            const data = {
+                labels: ['語学力', '専門科目', '研究計画', '教員コンタクト', 'GPA・単位'],
+                datasets: [{
+                    label: '現在の到達度',
+                    data: [3, 4, 2, 1, 6], // Initial values matching sliders
+                    backgroundColor: 'rgba(30, 58, 138, 0.2)', // Tailwind blue-900 with opacity
+                    borderColor: 'rgba(30, 58, 138, 1)',
+                    pointBackgroundColor: 'rgba(16, 185, 129, 1)', // Tailwind emerald-500
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(16, 185, 129, 1)',
+                    borderWidth: 2,
+                }]
+            };
+
+            const config = {
+                type: 'radar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                            pointLabels: {
+                                font: { size: 12, family: "'Helvetica Neue', 'Hiragino Kaku Gothic ProN', sans-serif" },
+                                color: '#475569' // slate-600
+                            },
+                            ticks: {
+                                min: 0,
+                                max: 10,
+                                stepSize: 2,
+                                display: false // Hide numbers on grid lines for cleaner look
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)', // slate-900
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 14 },
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.formattedValue + ' / 10';
+                                }
+                            }
+                        }
+                    }
+                },
+            };
+
+            readinessChart = new Chart(ctx, config);
+            generateRecommendation([3, 4, 2, 1, 6]);
+        }
+
+        function updateChart() {
+            const eng = parseInt(document.getElementById('slider-english').value);
+            const spec = parseInt(document.getElementById('slider-specialty').value);
+            const res = parseInt(document.getElementById('slider-research').value);
+            const con = parseInt(document.getElementById('slider-contact').value);
+            const gpa = parseInt(document.getElementById('slider-gpa').value);
+
+            // Update displayed values
+            document.getElementById('val-english').textContent = eng;
+            document.getElementById('val-specialty').textContent = spec;
+            document.getElementById('val-research').textContent = res;
+            document.getElementById('val-contact').textContent = con;
+            document.getElementById('val-gpa').textContent = gpa;
+
+            const newData = [eng, spec, res, con, gpa];
+
+            // Update Chart
+            readinessChart.data.datasets[0].data = newData;
+            readinessChart.update();
+
+            // Update Recommendation Logic
+            generateRecommendation(newData);
+        }
+
+        function generateRecommendation(data) {
+            const recBox = document.getElementById('dynamic-recommendation');
+            const recText = document.getElementById('rec-text');
+            recBox.classList.remove('hidden');
+
+            const [eng, spec, res, con, gpa] = data;
+            let advice = "";
+
+            if (con < 3) {
+                advice = "【最優先事項】研究室訪問や教員へのコンタクトが未着手です。行きたい大学院の目星をつけて、まずはメールでアポイントメントを取る準備を始めましょう。";
+            } else if (res < 4) {
+                advice = "教員へのコンタクトは進んでいますが、研究計画の具体化が遅れています。関連論文を読み、自分が「何を明らかにしたいのか」を文章化する作業を急ぎましょう。";
+            } else if (eng < 5) {
+                advice = "研究の方向性は見えつつありますが、語学力（英語）がボトルネックになる可能性があります。毎日30分でもTOEIC/TOEFLの対策時間を確保してください。";
+            } else if (spec < 5) {
+                advice = "英語力や計画は順調ですが、専門科目の基礎固めが必要です。過去問を入手し、出題傾向を分析した上で、学部1・2年の教科書から復習を行いましょう。";
+            } else if (gpa < 4) {
+                advice = "学部の単位取得状況に不安があります。まずは無事に卒業することが大前提ですので、後期の授業の履修計画をしっかり立て、GPAの維持・向上に努めてください。";
+            } else {
+                advice = "全体的に非常にバランス良く準備が進んでいます。この調子で過去問演習や研究計画書の推敲を重ね、より完成度を高めていきましょう。";
+            }
+
+            recText.textContent = advice;
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+        });
+
+    </script>
+</body>
+</html>
